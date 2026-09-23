@@ -3,9 +3,14 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import NotFoundError
-from app.repositories.listing_repo import ListingRecord, ListingRepository
+from app.repositories.listing_repo import (
+    GeoFilter,
+    ListingRecord,
+    ListingRepository,
+    SearchFilters,
+)
 from app.schemas.common import PageParams, Paginated
-from app.schemas.listing import ListingCreate, ListingOut, ListingUpdate
+from app.schemas.listing import ListingCreate, ListingOut, ListingUpdate, SearchParams
 
 
 def to_out(record: ListingRecord) -> ListingOut:
@@ -40,6 +45,28 @@ class ListingService:
     async def list_page(self, params: PageParams) -> Paginated[ListingOut]:
         records, total = await self.repo.list_paginated(
             limit=params.page_size, offset=params.offset
+        )
+        return Paginated[ListingOut].build(
+            [to_out(r) for r in records],
+            total=total,
+            page=params.page,
+            page_size=params.page_size,
+        )
+
+    async def search(self, params: SearchParams) -> Paginated[ListingOut]:
+        geo = None
+        if params.lat is not None and params.lng is not None and params.radius_km is not None:
+            geo = GeoFilter(lat=params.lat, lng=params.lng, radius_km=params.radius_km)
+        filters = SearchFilters(
+            listing_type=params.listing_type,
+            min_price=params.min_price_kobo,  # naira -> kobo
+            max_price=params.max_price_kobo,
+            min_bedrooms=params.min_bedrooms,
+            max_bedrooms=params.max_bedrooms,
+            geo=geo,
+        )
+        records, total = await self.repo.search(
+            filters, params.sort, limit=params.page_size, offset=params.offset
         )
         return Paginated[ListingOut].build(
             [to_out(r) for r in records],

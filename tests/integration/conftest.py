@@ -28,7 +28,7 @@ from app.services.listing_service import to_out
 ROOT = Path(__file__).resolve().parents[2]
 
 # Lekki Phase 1, Lagos
-LEKKI = (6.4474, 3.4746)
+LEKKI = (6.4478, 3.4723)
 DEFAULT_AGENT_ID = uuid.UUID("7d3f0f3e-4b8f-4c1e-9d6a-2f3c1b5a9e01")
 
 

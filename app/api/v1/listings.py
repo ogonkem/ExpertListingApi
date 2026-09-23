@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
 from app.schemas.common import ErrorResponse, PageParams, Paginated
-from app.schemas.listing import ListingCreate, ListingOut, ListingUpdate
+from app.schemas.listing import ListingCreate, ListingOut, ListingUpdate, SearchParams
 from app.services.listing_service import ListingService
 
 router = APIRouter(prefix="/listings", tags=["listings"])
@@ -120,6 +120,31 @@ async def list_listings(
     service: Service, params: Annotated[PageParams, Query()]
 ) -> Paginated[ListingOut]:
     return await service.list_page(params)
+
+
+# Registered before /{listing_id}: routes match in order, and "search" would otherwise be
+# captured as a (malformed) listing id and rejected with a 422.
+@router.get(
+    "/search",
+    response_model=Paginated[ListingOut],
+    summary="Search listings",
+    description=(
+        "Filter by `type`, price range (naira), bedroom range and, optionally, a radius "
+        "around a point. `lat`, `lng` and `radius_km` go together; when given, each result "
+        "includes `distance_km` and `sort=distance` becomes available. Results are "
+        "paginated and ordering is stable (ties broken by id).\n\n"
+        "Examples:\n"
+        "- Rentals within 10 km of Lekki Phase 1, nearest first: "
+        "`?type=rent&lat=6.4478&lng=3.4723&radius_km=10&sort=distance`\n"
+        "- 3+ bedroom homes for sale under ₦500m: "
+        "`?type=sale&min_bedrooms=3&max_price=500000000&sort=price_asc`"
+    ),
+    responses=INVALID,
+)
+async def search_listings(
+    service: Service, params: Annotated[SearchParams, Query()]
+) -> Paginated[ListingOut]:
+    return await service.search(params)
 
 
 @router.get(
