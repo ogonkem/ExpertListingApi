@@ -15,7 +15,7 @@ permissions:
 jobs:
   lint:
     name: Lint & type-check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.2.0
@@ -28,7 +28,7 @@ jobs:
 
   test:
     name: Tests (PostGIS)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       db:
         image: postgis/postgis:16-3.4
@@ -76,7 +76,7 @@ jobs:
     # Runs the README's quick start verbatim on a clean checkout, so the documented
     # commands (and the Makefile) are exercised on every push.
     name: README quick start
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.2.0
