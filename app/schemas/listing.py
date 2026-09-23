@@ -1,4 +1,3 @@
-import math
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -19,6 +18,7 @@ from pydantic import (
 
 from app.core.config import get_settings
 from app.db.models import Listing, ListingType
+from app.schemas.common import PageParams
 
 _settings = get_settings()
 
@@ -127,6 +127,28 @@ class ListingUpdate(BaseModel):
 
 
 class ListingOut(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "id": "0b8f6a52-5c1e-4a8e-9a57-3f1f2d8c7e10",
+                    "title": "Serviced 3 bedroom flat in Lekki Phase 1",
+                    "description": "24h power, pool and gym. Close to Admiralty Way.",
+                    "price": 8500000,
+                    "currency": "NGN",
+                    "listing_type": "rent",
+                    "bedrooms": 3,
+                    "location": {"lat": 6.4474, "lng": 3.4746},
+                    "address": "15 Admiralty Way, Lekki Phase 1",
+                    "city": "Lagos",
+                    "agent_id": "7d3f0f3e-4b8f-4c1e-9d6a-2f3c1b5a9e01",
+                    "created_at": "2026-09-23T10:15:00Z",
+                    "updated_at": "2026-09-23T10:15:00Z",
+                }
+            ]
+        }
+    )
+
     id: uuid.UUID
     title: str
     description: str | None
@@ -185,7 +207,7 @@ class SortOrder(StrEnum):
     NEWEST = "newest"
 
 
-class SearchParams(BaseModel):
+class SearchParams(PageParams):
     model_config = ConfigDict(extra="forbid", validate_by_name=True, validate_by_alias=True)
 
     listing_type: ListingType | None = Field(default=None, alias="type")
@@ -197,8 +219,6 @@ class SearchParams(BaseModel):
     lng: Longitude | None = None
     radius_km: Annotated[float, Field(gt=0, le=_settings.max_radius_km)] | None = None
     sort: SortOrder = SortOrder.NEWEST
-    page: Annotated[int, Field(ge=1)] = 1
-    page_size: Annotated[int, Field(ge=1, le=_settings.max_page_size)] = 20
 
     @model_validator(mode="after")
     def _check_combinations(self) -> Self:
@@ -235,31 +255,3 @@ class SearchParams(BaseModel):
     @property
     def max_price_kobo(self) -> int | None:
         return None if self.max_price is None else naira_to_kobo(self.max_price)
-
-    @property
-    def offset(self) -> int:
-        return (self.page - 1) * self.page_size
-
-
-class PageMeta(BaseModel):
-    page: int
-    page_size: int
-    total: int
-    total_pages: int
-
-
-class Paginated[T](BaseModel):
-    data: list[T]
-    meta: PageMeta
-
-    @classmethod
-    def build(cls, items: list[T], *, total: int, page: int, page_size: int) -> Self:
-        return cls(
-            data=items,
-            meta=PageMeta(
-                page=page,
-                page_size=page_size,
-                total=total,
-                total_pages=math.ceil(total / page_size) if total else 0,
-            ),
-        )

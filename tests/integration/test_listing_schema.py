@@ -5,7 +5,7 @@ import pytest
 from alembic import command
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.models import Listing, ListingType
 from tests.integration.conftest import alembic_config
@@ -52,17 +52,22 @@ async def test_listing_type_stored_as_lowercase_enum_label(db_session: AsyncSess
     assert raw == "shortlet"
 
 
-async def test_updated_at_trigger_bumps_on_update(db_session: AsyncSession) -> None:
-    listing = make_listing()
-    db_session.add(listing)
-    await db_session.commit()
-    created_at = listing.created_at
+async def test_updated_at_trigger_bumps_on_update(
+    committing_sessionmaker: async_sessionmaker[AsyncSession],
+) -> None:
+    # Needs real, separate transactions: now() is fixed for a transaction's lifetime,
+    # so inside the rolled-back test transaction updated_at could never move.
+    async with committing_sessionmaker() as session:
+        listing = make_listing()
+        session.add(listing)
+        await session.commit()
+        created_at = listing.created_at
 
-    listing.title = "Renovated 2 bedroom flat"
-    await db_session.commit()
+        listing.title = "Renovated 2 bedroom flat"
+        await session.commit()
 
-    assert listing.updated_at > created_at
-    assert listing.created_at == created_at
+        assert listing.updated_at > created_at
+        assert listing.created_at == created_at
 
 
 @pytest.mark.parametrize(

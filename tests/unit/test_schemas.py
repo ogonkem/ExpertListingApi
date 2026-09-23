@@ -9,13 +9,13 @@ from pydantic import ValidationError
 
 from app.core.config import get_settings
 from app.db.models import Listing, ListingType
+from app.schemas.common import Paginated
 from app.schemas.listing import (
     NON_NULLABLE_FIELDS,
     ListingCreate,
     ListingOut,
     ListingUpdate,
     LocationIn,
-    Paginated,
     SearchParams,
     SortOrder,
     kobo_to_naira,
