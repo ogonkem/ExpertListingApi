@@ -245,10 +245,6 @@ class SearchParams(PageParams):
         return self
 
     @property
-    def has_point(self) -> bool:
-        return self.lat is not None
-
-    @property
     def min_price_kobo(self) -> int | None:
         return None if self.min_price is None else naira_to_kobo(self.min_price)
 

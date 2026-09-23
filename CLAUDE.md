@@ -14,8 +14,11 @@ filtered + geospatial search, pagination, validation, tests and a strong README.
 ## Layout
 app/main.py (app factory, handlers, routers)
 app/core/config.py
+app/core/request_id.py             # X-Request-ID + structured access-log middleware
+app/core/logging_config.py         # JSON/text logging setup
 app/db/session.py, app/db/models.py
 app/schemas/listing.py
+app/schemas/common.py              # PageParams, Paginated[T], ErrorResponse
 app/repositories/listing_repo.py   # ALL SQL/PostGIS lives here
 app/services/listing_service.py    # business rules, raises domain errors
 app/api/v1/listings.py             # thin routers only

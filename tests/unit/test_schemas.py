@@ -335,7 +335,7 @@ def test_search_defaults() -> None:
     params = SearchParams()
 
     assert (params.sort, params.page, params.page_size) == (SortOrder.NEWEST, 1, 20)
-    assert params.has_point is False
+    assert (params.lat, params.lng, params.radius_km) == (None, None, None)
     assert params.offset == 0
 
 
@@ -352,7 +352,7 @@ def test_search_rejects_unknown_type() -> None:
 def test_search_accepts_full_geo_filter() -> None:
     params = SearchParams(lat=6.45, lng=3.47, radius_km=5)
 
-    assert params.has_point is True
+    assert (params.lat, params.lng, params.radius_km) == (6.45, 3.47, 5)
 
 
 @pytest.mark.parametrize(
