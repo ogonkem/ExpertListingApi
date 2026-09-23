@@ -24,7 +24,7 @@ jobs:
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run mypy app alembic tests
+      - run: uv run mypy app scripts alembic tests
 
   test:
     name: Tests (PostGIS)
@@ -55,7 +55,22 @@ jobs:
       - run: uv sync --locked
       - name: Migrations apply cleanly
         run: uv run alembic upgrade head
-      - run: uv run pytest -q -rs
+      - name: pytest with coverage
+        run: uv run pytest -q -rs --cov --cov-report=term-missing --cov-report=xml
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f .coverage ]; then
+            echo "## Coverage" >> "$GITHUB_STEP_SUMMARY"
+            uv run coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload coverage.xml
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: ignore
 
   docker:
     name: Compose smoke test
