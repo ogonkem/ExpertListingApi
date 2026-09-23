@@ -1,7 +1,9 @@
 .PHONY: up down reset logs migrate seed test lint fmt
 
+# --wait: return only once db and api are healthy (migrations have run), so a
+# following `make seed` can't race `alembic upgrade head`.
 up:
-	docker compose up -d --build
+	docker compose up -d --build --wait --wait-timeout 120
 
 down:
 	docker compose down
@@ -13,12 +15,13 @@ reset:
 logs:
 	docker compose logs -f
 
+# -T: no TTY, so these also work from scripts and CI.
 migrate:
-	docker compose exec api alembic upgrade head
+	docker compose exec -T api alembic upgrade head
 
 # e.g. make seed ARGS="--count 2000 --reset"
 seed:
-	docker compose exec api python -m scripts.seed $(ARGS)
+	docker compose exec -T api python -m scripts.seed $(ARGS)
 
 test:
 	uv run pytest -q --cov --cov-report=term-missing

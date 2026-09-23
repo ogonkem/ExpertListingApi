@@ -72,20 +72,35 @@ jobs:
           path: coverage.xml
           if-no-files-found: ignore
 
-  docker:
-    name: Compose smoke test
+  quickstart:
+    # Runs the README's quick start verbatim on a clean checkout, so the documented
+    # commands (and the Makefile) are exercised on every push.
+    name: README quick start
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Build and start stack
-        run: docker compose up -d --build --wait --wait-timeout 120
-      - name: GET /health
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - name: cp .env.example .env
+        run: cp .env.example .env
+      - name: make up
+        run: make up
+      - name: make seed
+        run: make seed
+      - name: /health, /docs and seeded data are served
         run: |
           body=$(curl -fsS http://localhost:8000/health)
           echo "$body"
           test "$body" = '{"status":"ok","database":"ok"}'
-      - name: Test database was created
+          curl -fsS -o /dev/null http://localhost:8000/docs
+          total=$(curl -fsS "http://localhost:8000/api/v1/listings?page_size=1" | jq .meta.total)
+          echo "seeded listings: $total"
+          test "$total" -eq 500
+      - name: Test database was created with PostGIS
         run: docker compose exec -T db psql -U expert -d expert_listing_test -tAc "SELECT postgis_version()"
+      - name: make test
+        run: make test
       - name: Logs on failure
         if: failure()
         run: docker compose logs
