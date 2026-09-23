@@ -30,6 +30,11 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
 
+[tool.ruff.lint.isort]
+# The local alembic/ migrations dir would otherwise make ruff treat the package as first-party.
+known-third-party = ["alembic"]
+known-first-party = ["app", "tests", "scripts"]
+
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]
 
