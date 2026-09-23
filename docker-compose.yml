@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-expert}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-expert}
+      POSTGRES_DB: ${POSTGRES_DB:-expert_listing}
+      POSTGRES_TEST_DB: ${POSTGRES_TEST_DB:-expert_listing_test}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Runs only when the volume is first initialised; `make down` resets it.
+      # Mounted as a single file so the image's own 10_postgis.sh is kept.
+      - ./docker/initdb/20-create-test-db.sh:/docker-entrypoint-initdb.d/20-create-test-db.sh:ro
+    healthcheck:
+      # Probe over TCP: during first-boot init Postgres runs a socket-only temporary
+      # server, which a socket probe would wrongly report as ready.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-expert}:${POSTGRES_PASSWORD:-expert}@db:5432/${POSTGRES_DB:-expert_listing}
+      APP_ENV: ${APP_ENV:-local}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      MAX_PAGE_SIZE: ${MAX_PAGE_SIZE:-100}
+      MAX_RADIUS_KM: ${MAX_RADIUS_KM:-100}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  pgdata:
