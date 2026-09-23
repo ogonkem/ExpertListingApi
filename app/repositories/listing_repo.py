@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -118,10 +119,6 @@ class ListingRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    @staticmethod
-    def _with_coordinates() -> Select[tuple[Listing, float, float]]:
-        return select(Listing, LAT, LNG)
-
     async def create(self, values: dict[str, Any], *, lat: float, lng: float) -> ListingRecord:
         stmt = (
             insert(Listing).values(**values, location=point(lat, lng)).returning(Listing, LAT, LNG)
@@ -129,8 +126,28 @@ class ListingRepository:
         row = (await self.session.execute(stmt)).one()
         return ListingRecord(row.Listing, row.lat, row.lng)
 
+    async def bulk_create(
+        self, rows: Sequence[tuple[dict[str, Any], float, float]], *, chunk_size: int = 500
+    ) -> int:
+        """Insert many (values, lat, lng) rows with one multi-VALUES INSERT per chunk."""
+        for start in range(0, len(rows), chunk_size):
+            chunk = rows[start : start + chunk_size]
+            await self.session.execute(
+                insert(Listing).values(
+                    [values | {"location": point(lat, lng)} for values, lat, lng in chunk]
+                )
+            )
+        return len(rows)
+
+    async def count(self) -> int:
+        return await self.session.scalar(select(func.count()).select_from(Listing)) or 0
+
+    async def delete_all(self) -> int:
+        result = await self.session.execute(delete(Listing))
+        return int(result.rowcount)  # type: ignore[attr-defined]
+
     async def get_by_id(self, listing_id: uuid.UUID) -> ListingRecord | None:
-        stmt = self._with_coordinates().where(Listing.id == listing_id)
+        stmt = select(Listing, LAT, LNG).where(Listing.id == listing_id)
         row = (await self.session.execute(stmt)).one_or_none()
         return None if row is None else ListingRecord(row.Listing, row.lat, row.lng)
 
