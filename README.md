@@ -30,13 +30,13 @@ No `make` (e.g. on Windows)? Every target is a single command. Copy it from the 
 
 <details><summary>Configuration (<code>.env</code>)</summary>
 
-| Variable | Default | Notes |
-|---|---|---|
+| Variable                             | Default           | Notes                                                                |
+|--------------------------------------|-------------------|----------------------------------------------------------------------|
 | `DATABASE_URL` / `TEST_DATABASE_URL` | local compose DBs | `postgresql+asyncpg://…`. The test DB is created by `docker/initdb`. |
-| `MAX_PAGE_SIZE` / `MAX_RADIUS_KM` | `100` / `100` | Upper bounds for `page_size` and `radius_km` |
-| `LOG_FORMAT` / `LOG_LEVEL` | `json` / `INFO` | JSON: one object per line, including `request_id` |
-| `CORS_ORIGINS` | *(empty = off)* | Comma-separated origins, or `*` |
-| `APP_ENV` | `local` | Included in every log line |
+| `MAX_PAGE_SIZE` / `MAX_RADIUS_KM`    | `100` / `100`     | Upper bounds for `page_size` and `radius_km`                         |
+| `LOG_FORMAT` / `LOG_LEVEL`           | `json` / `INFO`   | JSON: one object per line, including `request_id`                    |
+| `CORS_ORIGINS`                       | *(empty = off)*   | Comma-separated origins, or `*`                                      |
+| `APP_ENV`                            | `local`           | Included in every log line                                           |
 
 </details>
 
@@ -44,15 +44,15 @@ No `make` (e.g. on Windows)? Every target is a single command. Copy it from the 
 
 All routes are under `/api/v1`. Interactive docs are at `/docs`.
 
-| Method | Path | Success | Notes |
-|---|---|---|---|
-| `POST` | `/listings` | 201 + `Location` | Body: `title, price (naira), listing_type, bedrooms, location{lat,lng}, agent_id`, plus optional `description, address, city` |
-| `GET` | `/listings` | 200 | Newest first; `page`, `page_size` |
-| `GET` | `/listings/search` | 200 | `type, min_price, max_price, min_bedrooms, max_bedrooms, lat, lng, radius_km, sort, page, page_size` |
-| `GET` | `/listings/{id}` | 200 | 404 if missing, 422 if not a UUID |
-| `PATCH` | `/listings/{id}` | 200 | Partial update (see [PATCH semantics](#design-decisions)) |
-| `DELETE` | `/listings/{id}` | 204 | |
-| `GET` | `/health` | 200 / 503 | Includes a DB `SELECT 1` probe |
+| Method    | Path               | Success          | Notes                                                                                                                         |
+|-----------|--------------------|------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `POST`    | `/listings`        | 201 + `Location` | Body: `title, price (naira), listing_type, bedrooms, location{lat,lng}, agent_id`, plus optional `description, address, city` |
+| `GET`     | `/listings`        | 200              | Newest first; `page`, `page_size`                                                                                             |
+| `GET`     | `/listings/search` | 200              | `type, min_price, max_price, min_bedrooms, max_bedrooms, lat, lng, radius_km, sort, page, page_size`                          |
+| `GET`     | `/listings/{id}`   | 200              | 404 if missing, 422 if not a UUID                                                                                             |
+| `PATCH`   | `/listings/{id}`   | 200              | Partial update (see [PATCH semantics](#design-decisions))                                                                     |
+| `DELETE`  | `/listings/{id}`   | 204              |                                                                                                                               |
+| `GET`     | `/health`          | 200 / 503        | Includes a DB `SELECT 1` probe                                                                                                |
 
 `listing_type` is one of `rent` (per year), `sale` or `shortlet` (per night). `bedrooms` is
 `0`–`50`, where `0` means a studio or self contain. `sort` is one of `newest` (default),
