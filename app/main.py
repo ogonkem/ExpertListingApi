@@ -1,37 +1,38 @@
-import logging
-
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import health
 from app.api.v1 import api_router
-from app.core.config import get_settings
-from app.core.request_id import RequestIdLogFilter, RequestIdMiddleware
+from app.core.config import Settings, get_settings
+from app.core.logging_config import configure_logging
+from app.core.request_id import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.errors import register_exception_handlers
 
-_LOG_HANDLER_NAME = "expert-listing"
+
+def add_middleware(app: FastAPI, settings: Settings) -> None:
+    # Starlette runs the last-added middleware first. CORS is added first so the
+    # request-context middleware wraps it: preflight responses get an X-Request-ID and
+    # an access-log line too.
+    if settings.cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origins,
+            allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+            allow_headers=["Content-Type", REQUEST_ID_HEADER],
+            # Let browser clients read the new resource URL and the request id.
+            expose_headers=["Location", REQUEST_ID_HEADER],
+            allow_credentials=False,  # no cookies/auth: keeps "*" origins valid
+            max_age=600,
+        )
+    app.add_middleware(RequestContextMiddleware)
 
 
-def configure_logging(level: str) -> None:
-    handler = logging.StreamHandler()
-    handler.set_name(_LOG_HANDLER_NAME)
-    handler.addFilter(RequestIdLogFilter())
-    handler.setFormatter(
-        logging.Formatter("%(asctime)s %(levelname)s [%(request_id)s] %(name)s: %(message)s")
-    )
-    root = logging.getLogger()
-    # Replace only our own handler (create_app may run repeatedly, e.g. in tests) and
-    # leave others, such as pytest's log capture, in place.
-    root.handlers = [h for h in root.handlers if h.get_name() != _LOG_HANDLER_NAME]
-    root.addHandler(handler)
-    root.setLevel(level.upper())
-
-
-def create_app() -> FastAPI:
-    settings = get_settings()
-    configure_logging(settings.log_level)
+def create_app(settings: Settings | None = None) -> FastAPI:
+    settings = settings or get_settings()
+    configure_logging(settings.log_level, settings.log_format, settings.app_env)
 
     app = FastAPI(title="Expert Listing API", version="0.1.0")
-    app.add_middleware(RequestIdMiddleware)
+    add_middleware(app, settings)
     register_exception_handlers(app)
     app.include_router(health.router)
     app.include_router(api_router)

@@ -28,6 +28,8 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-expert}:${POSTGRES_PASSWORD:-expert}@db:5432/${POSTGRES_DB:-expert_listing}
       APP_ENV: ${APP_ENV:-local}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
       MAX_PAGE_SIZE: ${MAX_PAGE_SIZE:-100}
       MAX_RADIUS_KM: ${MAX_RADIUS_KM:-100}
     ports:
